@@ -106,11 +106,10 @@ int get_health_pkt(void *dat) {
 
 #ifdef PANDA
   health->current = adc_get(ADCCHAN_CURRENT);
-  health->started = (GPIOA->IDR & (1 << 1)) == 0;
 #else
   health->current = 0;
-  health->started = (GPIOC->IDR & (1 << 13)) != 0;
 #endif
+  health->started = started;
 
   health->controls_allowed = controls_allowed;
   health->gas_interceptor_detected = gas_interceptor_detected;
