@@ -131,6 +131,13 @@ void set_can_enable(CAN_TypeDef *CAN, int enabled) {
     #ifdef PANDA
       // CAN1_EN
       set_gpio_output(GPIOC, 1, !enabled);
+    #elif defined(VOLTBOARD)
+      // CAN1 GMLAN transceiver:
+      // Mode 0 and Mode 1 pins (PB3 & BP7):
+      // L L => sleep mode
+      // H H => normal mode, 33 Kbits/s
+      set_gpio_output(GPIOB, 3, enabled);
+      set_gpio_output(GPIOB, 7, enabled);
     #else
       // CAN1_EN
       set_gpio_output(GPIOB, 3, enabled);
@@ -318,6 +325,11 @@ void gpio_init() {
   set_gpio_alternate(GPIOA, 5, GPIO_AF5_SPI1);
   set_gpio_alternate(GPIOA, 6, GPIO_AF5_SPI1);
   set_gpio_alternate(GPIOA, 7, GPIO_AF5_SPI1);
+#endif
+
+#ifdef VOLTBOARD
+  // pull up RX on GMLAN
+  set_gpio_pullup(GPIOB, 8, PULL_UP);
 #endif
 
   // B8,B9: CAN 1

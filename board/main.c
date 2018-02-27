@@ -3,6 +3,8 @@
 
 // ********************* includes *********************
 
+#define VOLTBOARD
+
 #include "libc.h"
 #include "safety.h"
 #include "provision.h"
@@ -629,6 +631,27 @@ int main() {
       puth(can_rx_q.r_ptr); puts(" "); puth(can_rx_q.w_ptr); puts("  ");
       puth(can_tx1_q.r_ptr); puts(" "); puth(can_tx1_q.w_ptr); puts("  ");
       puth(can_tx2_q.r_ptr); puts(" "); puth(can_tx2_q.w_ptr); puts("\n");
+    #endif
+
+    #ifdef VOLTBOARD
+      // Chevy Volt: only enable radar when the car is on.
+      // Dead lead-acid battery is annoying to get to.
+      // N.B. Don't let radar power flicker, bad for the unit.
+      const int radar_power_delay = 3; // loop cycles, ~5s
+      if (gmlan_live) {
+        gmlan_live_cnt = min(gmlan_live_cnt + 1, radar_power_delay);
+      } else {
+        gmlan_live_cnt = max(gmlan_live_cnt - 1, 0);
+      }
+
+      if (radar_enabled && gmlan_live_cnt == 0) {
+        radar_enabled = 0;
+      }
+      if (!radar_enabled && gmlan_live_cnt >= radar_power_delay) {
+        radar_enabled = 1;
+      }
+      set_gpio_output(GPIOB, 12, radar_enabled);
+      gmlan_live = 0;
     #endif
 
     // set green LED to be controls allowed

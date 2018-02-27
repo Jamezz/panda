@@ -5,6 +5,13 @@
 
 int can_live = 0, pending_can_live = 0, can_loopback = 0, can_silent = ALL_CAN_SILENT;
 
+#ifdef VOLTBOARD
+// Shut down radar after gmlan is inactive for some time
+int radar_enabled = 0;
+int gmlan_live = 0;
+int gmlan_live_cnt = 0;
+#endif
+
 // ********************* instantiate queues *********************
 
 #define can_buffer(x, size) \
@@ -78,8 +85,9 @@ int can_tx_cnt = 0;
 int can_txd_cnt = 0;
 int can_err_cnt = 0;
 
-// NEO:         Bus 1=CAN1   Bus 2=CAN2
+// NEO:         Bus 1=CAN1   Bus 0=CAN2
 // Panda:       Bus 0=CAN1   Bus 1=CAN2   Bus 2=CAN3
+// Voltboard:   Same as NEO, except CAN1 is gmlan
 #ifdef PANDA
   CAN_TypeDef *cans[] = {CAN1, CAN2, CAN3};
   uint8_t bus_lookup[] = {0,1,2};
@@ -87,6 +95,13 @@ int can_err_cnt = 0;
   int8_t can_forwarding[] = {-1,-1,-1,-1};
   uint32_t can_speed[] = {5000, 5000, 5000, 333};
   #define CAN_MAX 3
+#elif defined(VOLTBOARD)
+  CAN_TypeDef *cans[] = {CAN1, CAN2};
+  uint8_t bus_lookup[] = {1,0};
+  uint8_t can_num_lookup[] = {1,0};
+  int8_t can_forwarding[] = {-1,-1};
+  uint32_t can_speed[] = {5000, 333};
+  #define CAN_MAX 2
 #else
   CAN_TypeDef *cans[] = {CAN1, CAN2};
   uint8_t bus_lookup[] = {1,0};
@@ -338,6 +353,15 @@ void can_rx(uint8_t can_number) {
 
     // can is live
     pending_can_live = 1;
+
+    #ifdef VOLTBOARD
+      // Only look at gmlan. Radar messages are not
+      // an indicator of a running car, since
+      // radar is powered by the voltboard.
+      if (can_number == 0) {
+        gmlan_live = 1;
+      }
+    #endif
 
     // add to my fifo
     CAN_FIFOMailBox_TypeDef to_push;
