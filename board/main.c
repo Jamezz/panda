@@ -535,7 +535,7 @@ int main() {
   // enable USB
   usb_init();
 
-  // default to silent mode to prevent issues with Ford
+  // Default to GM mode as Voltboard is not connected via USB to switch modes.
   safety_set_mode(SAFETY_GM, 0);
   can_silent = ALL_CAN_LIVE;
   can_init_all();
@@ -654,7 +654,7 @@ int main() {
       gmlan_live = 0;
     #endif
 
-    // set green LED to be controls allowed
+    // set green LED to be radar ON
     set_led(LED_GREEN, radar_enabled);
 
     // blink the red LED
