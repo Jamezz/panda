@@ -536,8 +536,8 @@ int main() {
   usb_init();
 
   // default to silent mode to prevent issues with Ford
-  safety_set_mode(SAFETY_NOOUTPUT, 0);
-  can_silent = ALL_CAN_SILENT;
+  safety_set_mode(SAFETY_GM, 0);
+  can_silent = ALL_CAN_LIVE;
   can_init_all();
 
   adc_init();
@@ -655,7 +655,7 @@ int main() {
     #endif
 
     // set green LED to be controls allowed
-    set_led(LED_GREEN, controls_allowed);
+    set_led(LED_GREEN, radar_enabled);
 
     // blink the red LED
     int div_mode = ((usb_power_mode == USB_POWER_DCP) ? 4 : 1);

@@ -1,3 +1,6 @@
+#define GM_VOLTBOARD_GMLAN_BUS 1
+#define GM_VOLTBOARD_OBJECT_BUS 0
+
 // board enforces
 //   in-state
 //      accel set/resume
@@ -173,6 +176,16 @@ static void gm_init(int16_t param) {
 }
 
 static int gm_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+  //BUS1 == CAN1 == GMLAN
+  //BUS0 == CAN2 == OBJECT BUS
+  if (bus_num == GM_VOLTBOARD_OBJECT_BUS) {
+    //Recvd on object bus
+    uint32_t addr = to_fwd->RIR;
+    if (addr == 0x10400060) { //Chime address    
+       //Forward the chime message onto GMLAN
+       return GM_VOLTBOARD_GMLAN_BUS;
+    }
+  }
   return -1;
 }
 

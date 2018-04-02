@@ -370,8 +370,8 @@ void can_rx(uint8_t can_number) {
     to_push.RDLR = CAN->sFIFOMailBox[0].RDLR;
     to_push.RDHR = CAN->sFIFOMailBox[0].RDHR;
 
-    // forwarding (panda only)
-    #ifdef PANDA
+    // Voltboard Proxy: Forward messages from Object bus destined for GMLAN
+    #ifdef VOLTBOARD
       int bus_fwd_num = can_forwarding[bus_number] != -1 ? can_forwarding[bus_number] : safety_fwd_hook(bus_number, &to_push);
       if (bus_fwd_num != -1) {
         CAN_FIFOMailBox_TypeDef to_send;
