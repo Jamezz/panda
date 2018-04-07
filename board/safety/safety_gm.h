@@ -178,9 +178,17 @@ static void gm_init(int16_t param) {
 static int gm_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   //BUS1 == CAN1 == GMLAN
   //BUS0 == CAN2 == OBJECT BUS
-  if (bus_num == GM_VOLTBOARD_OBJECT_BUS) {
+  if (bus_num == GM_VOLTBOARD_OBJECT_BUS) {  
     //Recvd on object bus
     uint32_t addr = to_fwd->RIR;
+    if (to_fwd->RIR & 4) {
+      // Extended
+      addr = to_fwd->RIR >> 3;
+    } else {
+      // Normal
+      addr = to_fwd->RIR >> 21;
+    }
+    
     if (addr == 0x10400060) { //Chime address    
        //Forward the chime message onto GMLAN
        return GM_VOLTBOARD_GMLAN_BUS;
