@@ -654,8 +654,6 @@ int main() {
       gmlan_live = 0;
     #endif
 
-    // set green LED to be radar ON
-    set_led(LED_GREEN, radar_enabled);
 
     // blink the red LED
     int div_mode = ((usb_power_mode == USB_POWER_DCP) ? 4 : 1);
@@ -665,7 +663,8 @@ int main() {
         for (int i = 0; i < 128/div_mode; i++) {
           set_led(LED_RED, 0);
           if (fade < 512) { delay(512-fade); } else { delay(fade-512); }
-          set_led(LED_RED, 1);
+          set_led(LED_GREEN, radar_enabled);
+          set_led(LED_RED, 1 && radar_enabled);
           if (fade < 512) { delay(fade); } else { delay(1024-fade); }
         }
       }
