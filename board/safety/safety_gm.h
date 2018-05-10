@@ -134,14 +134,12 @@ static void gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
   // B12,B13: gmlan
   set_gpio_mode(GPIOB, 12, MODE_OUTPUT);
   set_gpio_mode(GPIOB, 13, MODE_OUTPUT);
-  set_gpio_pullup(GPIOB, 12, PULL_DOWN);
-  set_gpio_pullup(GPIOB, 13, PULL_DOWN);
 
   gm_gmlan_bitbang_data(addr);
   gm_gmlan_bitbang_data(to_send->RDLR); //CAN is little endian on wire?
   gm_gmlan_bitbang_data(to_send->RDHR);
 
-  //Restore gmlan pins
+  //Restore gmlan pins to CAN xcvr
   set_can_mode(can_gmlan_bus, 1);
 
   exit_critical_section();
