@@ -247,7 +247,6 @@ void can_init_all() {
 
 void can_set_gmlan(int bus) {
   #ifdef PANDA
-  can_gmlan_bus = bus;
   if (bus == -1 || bus != can_num_lookup[3]) {
     // GMLAN OFF
     switch (can_num_lookup[3]) {
