@@ -265,12 +265,15 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, int hardwired) {
         if (setup->b.wValue.w == 1) {
           // GMLAN ON
           if (setup->b.wIndex.w == 1) {
+            safety_set_gmlan_bus(1);
             can_set_gmlan(1);
           } else if (setup->b.wIndex.w == 2) {
             // might be ignored on rev b panda
+            safety_set_gmlan_bus(2);
             can_set_gmlan(2);
           }
         } else {
+          safety_set_gmlan_bus(-1);
           can_set_gmlan(-1);
         }
       #endif

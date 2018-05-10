@@ -2,6 +2,7 @@ void safety_rx_hook(CAN_FIFOMailBox_TypeDef *to_push);
 int safety_tx_hook(CAN_FIFOMailBox_TypeDef *to_send);
 int safety_tx_lin_hook(int lin_num, uint8_t *data, int len);
 int safety_ignition_hook();
+void safety_set_gmlan_bus(int bus);
 
 typedef void (*safety_hook_init)(int16_t param);
 typedef void (*rx_hook)(CAN_FIFOMailBox_TypeDef *to_push);
@@ -21,6 +22,9 @@ typedef struct {
 
 // This can be set by the safety hooks.
 int controls_allowed = 0;
+
+//Save this for the GM safety as it needs to know what bus to monitor for bitbang
+int can_gmlan_bus = -1;
 
 // Include the actual safety policies.
 #include "safety/safety_defaults.h"
@@ -53,6 +57,12 @@ int safety_tx_lin_hook(int lin_num, uint8_t *data, int len){
 int safety_ignition_hook() {
   return current_hooks->ignition();
 }
+
+//Safety needs to save where the gmlan bus is so GM hooks know about it.
+void safety_set_gmlan_bus(int bus) {
+  can_gmlan_bus = bus;
+}
+
 int safety_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   return current_hooks->fwd(bus_num, to_fwd);
 }

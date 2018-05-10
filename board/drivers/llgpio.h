@@ -1,3 +1,4 @@
+#pragma once
 void set_gpio_mode(GPIO_TypeDef *GPIO, int pin, int mode) {
   uint32_t tmp = GPIO->MODER;
   tmp &= ~(3 << (pin*2));

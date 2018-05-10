@@ -1,3 +1,5 @@
+#include "../drivers/drivers.h"
+#include "../gpio.hh"
 // board enforces
 //   in-state
 //      accel set/resume
@@ -93,6 +95,58 @@ static void gm_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   }
 }
 
+static int gm_msg_is_destined_for_gmlan(CAN_FIFOMailBox_TypeDef *to_send) {
+  int bus_number = (to_send->RDTR >> 4) & 0xFF;
+  return bus_number == can_gmlan_bus;
+}
+
+static void gm_gmlan_bitbang_data(uint32_t data) {
+
+  set_gpio_output(GPIOB, 12, 1); //select: active high
+
+  for(int i = 0; i < 32; i++) {
+    // consider leftmost bit
+    // set line high if bit is 1, low if bit is 0
+    if (data & 0x80000000) {
+        set_gpio_output(GPIOB, 12, 1);
+    }
+    else {
+        set_gpio_output(GPIOB, 12, 0);
+    }
+    // shift byte left so next bit will be leftmost
+    data <<= 1;
+  }
+
+  set_gpio_output(GPIOB, 12, 0); //active high, reset to low
+}
+
+static void gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
+  enter_critical_section();
+
+  uint32_t addr;
+  if (to_send->RIR & 4) {
+    // Extended
+    addr = to_send->RIR >> 3;
+  } else {
+    // Normal
+    addr = to_send->RIR >> 21;
+  }
+  // B12,B13: gmlan
+  set_gpio_mode(GPIOB, 12, MODE_OUTPUT);
+  set_gpio_mode(GPIOB, 13, MODE_OUTPUT);
+  set_gpio_pullup(GPIOB, 12, PULL_DOWN);
+  set_gpio_pullup(GPIOB, 13, PULL_DOWN);
+
+  gm_gmlan_bitbang_data(addr);
+  gm_gmlan_bitbang_data(to_send->RDLR); //CAN is little endian on wire?
+  gm_gmlan_bitbang_data(to_send->RDHR);
+
+  //Restore gmlan pins
+  set_can_mode(can_gmlan_bus, 1);
+
+  exit_critical_section();
+}
+
 // all commands: gas/regen, friction brake and steering
 // if controls_allowed and no pedals pressed
 //     allow all commands up to limit
@@ -164,6 +218,11 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
       // value that corresponds to max regen.
       if (apply || gas_regen != 1404) return 0;
     }
+  }
+
+  if (gm_msg_is_destined_for_gmlan(to_send)) {
+    //Bitbang time!
+    gm_gmlan_bitbang(to_send);
   }
 
   // 1 allows the message through

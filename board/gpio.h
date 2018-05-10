@@ -1,8 +1,4 @@
-#ifdef STM32F4
-  #include "stm32f4xx_hal_gpio_ex.h"
-#else
-  #include "stm32f2xx_hal_gpio_ex.h"
-#endif
+#include "gpio.hh"
 
 // ********************* dynamic configuration detection *********************
 
