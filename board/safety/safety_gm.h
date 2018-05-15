@@ -285,7 +285,8 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   if (gm_msg_is_destined_for_gmlan(to_send)) {
     //Bitbang time!
     int successful = 0;
-    while (!successful) {
+    int attempts = 0;
+    while (!successful && attempts++ < 200) {
       successful = gm_gmlan_bitbang(to_send);
     }
   }
