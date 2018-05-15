@@ -106,7 +106,7 @@ static int gm_msg_is_destined_for_gmlan(CAN_FIFOMailBox_TypeDef *to_send) {
 }
 
 static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
-
+  //SWCAN spec: http://www.onsemi.com/pub/Collateral/AND8169-D.PDF
   int pin = 12;
   uint32_t addr;
   uint8_t isExtended = 0;
@@ -138,8 +138,8 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
       set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
 
       set_gpio_mode(GPIOB, pin, MODE_INPUT);
-      if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
-        //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+      if (!addr && get_gpio_input(GPIOB, pin)) {
+        //We got stepped on (Transmit a recessive 0 and someone dominated 1)
         goto fail;
       }
 
@@ -160,8 +160,8 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
       set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
 
       set_gpio_mode(GPIOB, pin, MODE_INPUT);
-      if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
-        //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+      if (!addr && get_gpio_input(GPIOB, pin)) {
+        //We got stepped on (Transmit a recessive 0 and someone dominated 1)
         goto fail;
       }
 
@@ -185,8 +185,8 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
         set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
 
         set_gpio_mode(GPIOB, pin, MODE_INPUT);
-        if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
-          //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+        if (!addr && get_gpio_input(GPIOB, pin)) {
+          //We got stepped on (Transmit a recessive 0 and someone dominated 1)
           goto fail;
         }
 
