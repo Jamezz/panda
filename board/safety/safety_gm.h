@@ -1,5 +1,10 @@
 #include "../drivers/drivers.h"
 #include "../gpio.hh"
+
+#define GPIO_BSRR_BS12                      ((uint32_t)0x00001000U)
+#define GPIO_BSRR_BS13                      ((uint32_t)0x00002000U)
+#define GPIO_BSRR_BR12                      ((uint32_t)0x10000000U)
+#define GPIO_BSRR_BR13                      ((uint32_t)0x20000000U)
 // board enforces
 //   in-state
 //      accel set/resume
@@ -100,49 +105,108 @@ static int gm_msg_is_destined_for_gmlan(CAN_FIFOMailBox_TypeDef *to_send) {
   return bus_number == can_gmlan_bus;
 }
 
-static void gm_gmlan_bitbang_data(uint32_t data) {
-
-  set_gpio_output(GPIOB, 12, 1); //select: active high
-
-  for(int i = 0; i < 32; i++) {
-    // consider leftmost bit
-    // set line high if bit is 1, low if bit is 0
-    if (data & 0x80000000) {
-        set_gpio_output(GPIOB, 12, 1);
-    }
-    else {
-        set_gpio_output(GPIOB, 12, 0);
-    }
-    // shift byte left so next bit will be leftmost
-    data <<= 1;
-  }
-
-  set_gpio_output(GPIOB, 12, 0); //active high, reset to low
-}
-
-static void gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
+static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
   enter_critical_section();
 
+  int pin = 12;
   uint32_t addr;
+  uint8_t isExtended = 0;
+  uint32_t rdlr = to_send->RDLR;
+  uint32_t rdhr = to_send->RDHR;
+
   if (to_send->RIR & 4) {
     // Extended
     addr = to_send->RIR >> 3;
+    isExtended = 1;
   } else {
     // Normal
     addr = to_send->RIR >> 21;
   }
-  // B12,B13: gmlan
-  set_gpio_mode(GPIOB, 12, MODE_OUTPUT);
-  set_gpio_mode(GPIOB, 13, MODE_OUTPUT);
+    // B12,B13: gmlan
+  
+  //STEP 1: Send address
+  for(int i = 0; i < (isExtended ? 29 : 11); i++) {
+      // consider leftmost bit
+      // set line high if bit is 1, low if bit is 0
+      if (addr & 0x80000000) {
+          GPIOB->BSRR = GPIO_BSRR_BS12;
+      }
+      else {
+          GPIOB->BSRR = GPIO_BSRR_BR12;
+      }
+      set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
 
-  gm_gmlan_bitbang_data(addr);
-  gm_gmlan_bitbang_data(to_send->RDLR); //CAN is little endian on wire?
-  gm_gmlan_bitbang_data(to_send->RDHR);
+      set_gpio_mode(GPIOB, pin, MODE_INPUT);
+      if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
+        //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+        goto fail;
+      }
+
+      // shift byte left so next bit will be leftmost
+      addr <<= 1;
+  }
+
+  //STEP 2: Send RDLR
+  for(int i = 0; i < 31; i++) {
+      // consider leftmost bit
+      // set line high if bit is 1, low if bit is 0
+      if (rdlr & 0x80000000) {
+          GPIOB->BSRR = GPIO_BSRR_BS12;
+      }
+      else {
+          GPIOB->BSRR = GPIO_BSRR_BR12;
+      }
+      set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
+
+      set_gpio_mode(GPIOB, pin, MODE_INPUT);
+      if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
+        //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+        goto fail;
+      }
+
+
+      // shift byte left so next bit will be leftmost
+      rdlr <<= 1;
+  }
+
+  //STEP 3: If not extended address, send RDHR
+  if (!isExtended) {
+    //Not extended means we have room for the HR
+    for(int i = 0; i < 31; i++) {
+        // consider leftmost bit
+        // set line high if bit is 1, low if bit is 0
+        if (rdhr & 0x80000000) {
+            GPIOB->BSRR = GPIO_BSRR_BS12;
+        }
+        else {
+            GPIOB->BSRR = GPIO_BSRR_BR12;
+        }
+        set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
+
+        set_gpio_mode(GPIOB, pin, MODE_INPUT);
+        if ((addr & 0x80000000) && !get_gpio_input(GPIOB, pin)) {
+          //We got stepped on (Transmit a recessive 1 and someone dominated 0)
+          goto fail;
+        }
+
+        // shift byte left so next bit will be leftmost
+        rdhr <<= 1;
+    }
+  }
 
   //Restore gmlan pins to CAN xcvr
   set_can_mode(can_gmlan_bus, 1);
-
   exit_critical_section();
+  return 1; //Success
+
+fail:
+//We got stepped on, return failure.
+//Expectation: Caller to call us again to attempt retransmit
+  //Restore gmlan pins to CAN xcvr
+  set_can_mode(can_gmlan_bus, 1);
+  exit_critical_section();
+  return 0; //Failure
+
 }
 
 // all commands: gas/regen, friction brake and steering
@@ -220,7 +284,10 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   if (gm_msg_is_destined_for_gmlan(to_send)) {
     //Bitbang time!
-    gm_gmlan_bitbang(to_send);
+    int successful = 0;
+    while (!successful) {
+      successful = gm_gmlan_bitbang(to_send);
+    }
   }
 
   // 1 allows the message through
