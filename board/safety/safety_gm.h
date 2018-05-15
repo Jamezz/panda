@@ -129,11 +129,20 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
   for(int i = 0; i < (isExtended ? 29 : 11); i++) {
       // consider leftmost bit
       // set line high if bit is 1, low if bit is 0
-      if (addr & 0x80000000) {
-          GPIOB->BSRR = GPIO_BSRR_BS12;
-      }
-      else {
-          GPIOB->BSRR = GPIO_BSRR_BR12;
+      if (isExtended) {
+        if (addr & 0x10000000) {
+            GPIOB->BSRR = GPIO_BSRR_BS12;
+        }
+        else {
+            GPIOB->BSRR = GPIO_BSRR_BR12;
+        }
+      } else {
+        if (addr & 0x400) {
+            GPIOB->BSRR = GPIO_BSRR_BS12;
+        }
+        else {
+            GPIOB->BSRR = GPIO_BSRR_BR12;
+        }
       }
       set_gpio_mode(GPIOB, pin, MODE_OUTPUT);
 
@@ -289,6 +298,10 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     int attempts = 0;
     while (!successful && attempts++ < 16) {
       successful = gm_gmlan_bitbang(to_send);
+    }
+
+    if (!successful) {
+      return false; //Failed to bang
     }
   }
 
