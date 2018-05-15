@@ -124,7 +124,7 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
     // B12,B13: gmlan
   
   enter_critical_section();
-  
+
   //STEP 1: Send address
   for(int i = 0; i < (isExtended ? 29 : 11); i++) {
       // consider leftmost bit
@@ -287,7 +287,7 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     //Bitbang time!
     int successful = 0;
     int attempts = 0;
-    while (!successful && attempts++ < 200) {
+    while (!successful && attempts++ < 16) {
       successful = gm_gmlan_bitbang(to_send);
     }
   }
