@@ -106,7 +106,6 @@ static int gm_msg_is_destined_for_gmlan(CAN_FIFOMailBox_TypeDef *to_send) {
 }
 
 static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
-  enter_critical_section();
 
   int pin = 12;
   uint32_t addr;
@@ -123,6 +122,8 @@ static int gm_gmlan_bitbang(CAN_FIFOMailBox_TypeDef *to_send) {
     addr = to_send->RIR >> 21;
   }
     // B12,B13: gmlan
+  
+  enter_critical_section();
   
   //STEP 1: Send address
   for(int i = 0; i < (isExtended ? 29 : 11); i++) {
