@@ -8,7 +8,6 @@ int can_live = 0, pending_can_live = 0, can_loopback = 0, can_silent = ALL_CAN_S
 #ifdef VOLTBOARD
 // Shut down radar after gmlan is inactive for some time
 int radar_enabled = 0;
-int gmlan_live = 0;
 int gmlan_live_cnt = 0;
 #endif
 
@@ -353,15 +352,6 @@ void can_rx(uint8_t can_number) {
 
     // can is live
     pending_can_live = 1;
-
-    #ifdef VOLTBOARD
-      // Only look at gmlan. Radar messages are not
-      // an indicator of a running car, since
-      // radar is powered by the voltboard.
-      if (can_number == 0) {
-        gmlan_live = 1;
-      }
-    #endif
 
     // add to my fifo
     CAN_FIFOMailBox_TypeDef to_push;

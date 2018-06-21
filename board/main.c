@@ -536,7 +536,7 @@ int main() {
   usb_init();
 
   // default to silent mode to prevent issues with Ford
-  safety_set_mode(SAFETY_NOOUTPUT, 0);
+  safety_set_mode(SAFETY_GM, 0); //Need GM safety hooks for voltboard-ascm
   can_silent = ALL_CAN_SILENT;
   can_init_all();
 
@@ -638,7 +638,7 @@ int main() {
       // Dead lead-acid battery is annoying to get to.
       // N.B. Don't let radar power flicker, bad for the unit.
       const int radar_power_delay = 3; // loop cycles, ~5s
-      if (gmlan_live) {
+      if (gm_ignition) {
         gmlan_live_cnt = min(gmlan_live_cnt + 1, radar_power_delay);
       } else {
         gmlan_live_cnt = max(gmlan_live_cnt - 1, 0);
@@ -651,25 +651,12 @@ int main() {
         radar_enabled = 1;
       }
       set_gpio_output(GPIOB, 12, radar_enabled);
-      gmlan_live = 0;
+      set_led(LED_RED, radar_enabled); //Set red LED to reflect radar power
+      gm_ignition = 0;
     #endif
 
     // set green LED to be controls allowed
     set_led(LED_GREEN, controls_allowed);
-
-    // blink the red LED
-    int div_mode = ((usb_power_mode == USB_POWER_DCP) ? 4 : 1);
-
-    for (int div_mode_loop = 0; div_mode_loop < div_mode; div_mode_loop++) {
-      for (int fade = 0; fade < 1024; fade += 8) {
-        for (int i = 0; i < 128/div_mode; i++) {
-          set_led(LED_RED, 0);
-          if (fade < 512) { delay(512-fade); } else { delay(fade-512); }
-          set_led(LED_RED, 1);
-          if (fade < 512) { delay(fade); } else { delay(1024-fade); }
-        }
-      }
-    }
 
     // turn off the blue LED, turned on by CAN
     #ifdef PANDA

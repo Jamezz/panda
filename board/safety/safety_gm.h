@@ -12,6 +12,7 @@
 int gm_brake_prev = 0;
 int gm_gas_prev = 0;
 int gm_speed = 0;
+int gm_ignition = 0;
 
 // silence everything if stock ECUs are still online
 int gm_ascm_detected = 0;
@@ -40,6 +41,13 @@ static void gm_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   if (bus_number == 0 && addr == 715) {
     gm_ascm_detected = 1;
     controls_allowed = 0;
+  }
+
+  if (bus_number == 0 && addr == 0x1F1) {
+    //Bit 5 should be ignition "on"
+    //Backup plan is Bit 2 (accessory power)
+    uint32_t ign = (to_push->RDLR) & 0x20;
+    gm_ignition = ign > 0;
   }
 
   // ACC steering wheel buttons
@@ -170,6 +178,7 @@ static int gm_tx_lin_hook(int lin_num, uint8_t *data, int len) {
 
 static void gm_init(int16_t param) {
   controls_allowed = 0;
+  gm_ignition = 0;
 }
 
 const safety_hooks gm_hooks = {
