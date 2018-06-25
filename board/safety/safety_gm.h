@@ -43,7 +43,7 @@ static void gm_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     controls_allowed = 0;
   }
 
-  if (bus_number == 0 && addr == 0x1F1) {
+  if (addr == 0x1F1) {
     //Bit 5 should be ignition "on"
     //Backup plan is Bit 2 (accessory power)
     uint32_t ign = (to_push->RDLR) & 0x20;

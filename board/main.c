@@ -537,7 +537,7 @@ int main() {
 
   // default to silent mode to prevent issues with Ford
   safety_set_mode(SAFETY_GM, 0); //Need GM safety hooks for voltboard-ascm
-  can_silent = ALL_CAN_SILENT;
+  can_silent = ALL_CAN_LIVE;
   can_init_all();
 
   adc_init();
@@ -562,6 +562,7 @@ int main() {
     #define CURRENT_THRESHOLD 0xF00
     #define CLICKS 8
   #endif
+
 
   for (cnt=0;;cnt++) {
     can_live = pending_can_live;
@@ -637,7 +638,7 @@ int main() {
       // Chevy Volt: only enable radar when the car is on.
       // Dead lead-acid battery is annoying to get to.
       // N.B. Don't let radar power flicker, bad for the unit.
-      const int radar_power_delay = 3; // loop cycles, ~5s
+      const int radar_power_delay = 10; // loop cycles, ~5s
       if (gm_ignition) {
         gmlan_live_cnt = min(gmlan_live_cnt + 1, radar_power_delay);
       } else {
@@ -652,7 +653,6 @@ int main() {
       }
       set_gpio_output(GPIOB, 12, radar_enabled);
       set_led(LED_RED, radar_enabled); //Set red LED to reflect radar power
-      gm_ignition = 0;
     #endif
 
     // set green LED to be controls allowed
