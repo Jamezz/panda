@@ -638,7 +638,7 @@ int main() {
       // Chevy Volt: only enable radar when the car is on.
       // Dead lead-acid battery is annoying to get to.
       // N.B. Don't let radar power flicker, bad for the unit.
-      const int radar_power_delay = 10; // loop cycles, ~5s
+      const int radar_power_delay = 15; // loop cycles, ~5s
       if (gm_ignition) {
         gmlan_live_cnt = min(gmlan_live_cnt + 1, radar_power_delay);
       } else {
